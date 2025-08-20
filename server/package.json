@@ -1,0 +1,25 @@
+{
+  "name": "airsoft-socket-server",
+  "version": "1.0.0",
+  "description": "Socket.IO server for Airsoft Tactical Map",
+  "main": "dist/socket-server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/socket-server.js",
+    "dev": "ts-node socket-server.ts",
+    "prebuild": "rm -rf dist || rmdir /s dist",
+    "postinstall": "npm run build"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

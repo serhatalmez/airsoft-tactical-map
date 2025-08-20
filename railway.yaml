@@ -1,0 +1,22 @@
+version: 2
+services:
+  socket-server:
+    source: ./server
+    build:
+      commands:
+        - npm install
+        - npm run build
+    start:
+      command: npm start
+    env:
+      NODE_ENV: production
+      PORT: ${{ PORT }}
+    healthcheck:
+      http:
+        path: /health
+        port: ${{ PORT }}
+    deploy:
+      replicas: 1
+      resources:
+        memory: 512
+        cpu: 1000

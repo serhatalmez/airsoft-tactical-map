@@ -1,6 +1,39 @@
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { SocketEvent, UserPosition, TacticalSymbol } from '../shared/types/index.js';
+
+// Import types (will be copied during build)
+interface UserPosition {
+  roomId: string;
+  userId: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+    accuracy?: number;
+    heading?: number;
+  };
+  isVisible: boolean;
+  lastUpdated: string;
+}
+
+interface TacticalSymbol {
+  id: string;
+  roomId: string;
+  createdBy: string;
+  type: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  label?: string;
+  description?: string;
+  color: string;
+  size: 'small' | 'medium' | 'large';
+  rotation: number;
+  isVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
