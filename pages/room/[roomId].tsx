@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/client/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/client/components/ui/card';
 import { ArrowLeft, Users, Settings, Share2, MapPin } from 'lucide-react';
-import { Room, RoomWithData, UserPosition, TacticalSymbol, Coordinates } from '@/shared/types';
+import { Room, RoomWithMembers, UserPosition, TacticalSymbol, Coordinates } from '@/shared/types';
 
 // Dynamically import MapView to avoid SSR issues
 const MapView = dynamic(() => import('@/client/components/map/MapView'), {
@@ -22,7 +22,7 @@ const MapView = dynamic(() => import('@/client/components/map/MapView'), {
 export default function RoomPage() {
   const router = useRouter();
   const { roomId } = router.query;
-  const [room, setRoom] = useState<RoomWithData | null>(null);
+  const [room, setRoom] = useState<RoomWithMembers | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
@@ -62,25 +62,32 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (room) {
-      setPositions(room.positions || []);
-      setSymbols(room.symbols || []);
+      // Room loaded successfully
+      // Positions and symbols will be managed separately through real-time updates
     }
   }, [room]);
 
   const fetchRoom = async () => {
     try {
       setLoading(true);
+      console.log('Fetching room:', roomId);
+      console.log('Using token:', session.access_token ? 'Token present' : 'No token');
+      
       const response = await fetch(`/api/rooms/${roomId}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Room data:', data);
         setRoom(data.data);
       } else {
         const errorData = await response.json();
+        console.error('Room fetch error:', errorData);
         setError(errorData.error || 'Failed to load room');
       }
     } catch (err) {
@@ -158,11 +165,19 @@ export default function RoomPage() {
             <CardTitle className="text-xl text-red-600">Room Not Found</CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={handleLeaveRoom} className="w-full">
+          <CardContent className="space-y-3">
+            <Button onClick={handleLeaveRoom} variant="outline" className="w-full">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                This room might not exist or you don't have access to it.
+              </p>
+              <p className="text-xs text-gray-500">
+                Room ID: {roomId}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

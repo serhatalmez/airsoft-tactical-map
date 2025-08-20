@@ -63,12 +63,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function handleGetRoom(req: NextApiRequest, res: NextApiResponse, roomId: string, userId: string) {
-  const room = await roomService.getRoomWithMembers(roomId, userId);
-  
-  return res.status(200).json({
-    success: true,
-    data: room,
-  });
+  try {
+    console.log(`[Room API] Getting room ${roomId} for user ${userId}`);
+    const room = await roomService.getRoomWithMembers(roomId, userId);
+    
+    console.log(`[Room API] Successfully fetched room: ${room.name}`);
+    return res.status(200).json({
+      success: true,
+      data: room,
+    });
+  } catch (error: any) {
+    console.error(`[Room API] Error getting room ${roomId}:`, error);
+    
+    if (error.message?.includes('not a member')) {
+      return res.status(403).json({
+        success: false,
+        error: 'You are not a member of this room',
+        code: 'NOT_MEMBER',
+      });
+    }
+    
+    if (error.message?.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        error: 'Room not found',
+        code: 'ROOM_NOT_FOUND',
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get room',
+      code: 'INTERNAL_ERROR',
+    });
+  }
 }
 
 async function handleUpdateRoom(req: NextApiRequest, res: NextApiResponse, roomId: string, userId: string) {

@@ -77,6 +77,20 @@ export class RoomService {
    * Get room by ID with members
    */
   async getRoomWithMembers(roomId: string, userId: string): Promise<RoomWithMembers> {
+    // First, get the room basic info
+    const { data: room, error: roomError } = await supabaseAdmin
+      .from('rooms')
+      .select('*')
+      .eq('id', roomId)
+      .single();
+
+    if (roomError) {
+      console.error('Room not found:', roomError);
+      throw new NotFoundError('Room not found');
+    }
+
+    console.log(`Found room: ${room.name}, owner: ${room.owner_id}, requesting user: ${userId}`);
+
     // Check if user is a member of the room
     const { data: membership } = await supabaseAdmin
       .from('room_members')
@@ -85,15 +99,23 @@ export class RoomService {
       .eq('user_id', userId)
       .single();
 
-    if (!membership) {
+    console.log('Membership check result:', membership);
+
+    // If user is not a member but is the owner, add them as a member
+    if (!membership && room.owner_id === userId) {
+      console.log('Owner not in members table, adding them...');
+      await this.addMemberToRoom(roomId, userId, 'owner');
+    } else if (!membership) {
+      console.log('User is not a member of this room');
       throw new AuthorizationError('You are not a member of this room');
     }
 
-    const { data: room, error: roomError } = await supabaseAdmin
+    // Get room with all members
+    const { data: roomWithMembers, error: membersError } = await supabaseAdmin
       .from('rooms')
       .select(`
         *,
-        room_members!inner (
+        room_members (
           *,
           users (*)
         )
@@ -101,21 +123,22 @@ export class RoomService {
       .eq('id', roomId)
       .single();
 
-    if (roomError) {
-      throw new NotFoundError('Room not found');
+    if (membersError) {
+      console.error('Error fetching room with members:', membersError);
+      throw new AppError('Failed to fetch room details');
     }
 
     return {
-      id: room.id,
-      name: room.name,
-      description: room.description,
-      inviteCode: room.invite_code,
-      ownerId: room.owner_id,
-      isPrivate: room.is_private,
-      maxMembers: room.max_members,
-      createdAt: room.created_at,
-      updatedAt: room.updated_at,
-      members: room.room_members.map((member: any) => ({
+      id: roomWithMembers.id,
+      name: roomWithMembers.name,
+      description: roomWithMembers.description,
+      inviteCode: roomWithMembers.invite_code,
+      ownerId: roomWithMembers.owner_id,
+      isPrivate: roomWithMembers.is_private,
+      maxMembers: roomWithMembers.max_members,
+      createdAt: roomWithMembers.created_at,
+      updatedAt: roomWithMembers.updated_at,
+      members: roomWithMembers.room_members?.map((member: any) => ({
         id: member.id,
         roomId: member.room_id,
         userId: member.user_id,
@@ -131,8 +154,8 @@ export class RoomService {
           avatar: member.users.avatar,
           createdAt: member.users.created_at,
         },
-      })),
-      memberCount: room.room_members.length,
+      })) || [],
+      memberCount: roomWithMembers.room_members?.length || 0,
     };
   }
 
